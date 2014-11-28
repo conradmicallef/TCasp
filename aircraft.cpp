@@ -128,7 +128,7 @@ void myaircraft_t::calcalert(alertaircraft_t &otheraircraft)
   TimeInterval_t t(0, SECONDS);
   t = RAZTimeInterval(position.z - otheraircraft.position.z, speed.z - otheraircraft.speed.z, t);
   a.remtime=t.from;
-  Dim2::VectorAC v=position.xy-otheraircraft.position.xy;
+  Dim2::VectorAC v=otheraircraft.position.xy-position.xy;
   a.distanceinmetres=int(v.mod)%65536;
   a.bearingindegrees=int((v.bearing-Dim2::VectorAC(speed.xy).bearing)*180/pi);
 

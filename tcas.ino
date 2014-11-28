@@ -16,7 +16,7 @@
 #define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
 #define LED 9
 
-#define DEBUG_ALWAYSACTIVE 1
+#define DEBUG_ALWAYSACTIVE 0
 #define DEBUG_ARMSTATE 0
 #define DEBUG_RX 0
 #define DEBUG_GPS 0
@@ -60,6 +60,7 @@ void setup() {
 
   // set up the LCD's number of columns and rows: 
   delay(2500);
+  lcd.setBrightness(30);
   lcd.clear();
   lcd.noCursor();
   lcd.noBlink();
@@ -94,11 +95,17 @@ bool gpsio()
   }
   if (newdata)
   {
-    Serial.write("ND");
     unsigned long time;
     float x,y;
-//    gps.f_get_position(&myaircraft.position.xy.x,&myaircraft.position.xy.y,&time);
+    //    gps.f_get_position(&myaircraft.position.xy.x,&myaircraft.position.xy.y,&time);
     gps.f_get_position(&x,&y,&time);
+#if !DEBUG_ARMSTATE
+    if (x==TinyGPS::GPS_INVALID_F_ANGLE || y==TinyGPS::GPS_INVALID_F_ANGLE || time==TinyGPS::GPS_INVALID_AGE)
+    {
+      state=AWAIT_GPS;
+      return false;
+    }
+#endif
     //check position if invalid change state and return false;
     myaircraft.position.xy.x=short(myaircraft.fr_to_word(myaircraft.fractional(x)));
     myaircraft.position.xy.y=short(myaircraft.fr_to_word(myaircraft.fractional(y)));
@@ -113,7 +120,8 @@ bool gpsio()
     myaircraft.speed.xy.y=xy.y;
 #if !DEBUG_ARMSTATE
     if (time>5000){
-      state=AWAIT_GPS;return false;
+      state=AWAIT_GPS;
+      return false;
     }
 #endif
   }
@@ -124,7 +132,7 @@ void await_gps_state()
   //await GPS reception, lock and position awareness
   if (gpsio())
   {
-      state=LISTENING;
+    state=LISTENING;
   }
 #if DEBUG_ALWAYSACTIVE
   state=ACTIVE;
@@ -150,24 +158,10 @@ void listening_state()
   if (radio.receiveDone())
   {
     wireprotocol_t &wire=*(wireprotocol_t *)radio.DATA;
-#if DEBUG_RX
-    Serial.write("RX");
-#endif
     //    memcpy(&wire,(const void *)radio.DATA,wp_size);
-#if DEBUG_RX
-    Serial.write("R1");
-    Serial.write(wire.callsign);
-#endif
     if (otheraircraft.from_wire(wire))
     {
-#if DEBUG_RX
-      Serial.write("RX2");
-      delay(500);
-#endif
       myaircraft.calcalert(otheraircraft);
-#if DEBUG_RX
-      Serial.write("RX3");
-#endif
       //eliminate local echos
       //if (alert.distanceinmetres!=0)
       {
@@ -196,10 +190,6 @@ void listening_state()
         }
       }
     }
-#if DEBUG_RX
-    Serial.write("RX4");
-#endif
-
   }
   if (alertupdated)
   {
@@ -218,7 +208,6 @@ void active_state()
   //if tx older than 3 seconds
   if (millis()>tx_next)
   {
-    Serial.write("TX");
     digitalWrite(LED,HIGH);
     wireprotocol_t &wire=*(wireprotocol_t *)radio.DATA;
     myaircraft.to_wire(wire);
@@ -238,7 +227,8 @@ void shutdown_state()
 {
   //shut down peripherals
 }
-const char * DISP[]={"NONE","FORM","NRST","WARN","ALRT"};
+const char * DISP[]={
+  "NONE","FORM","NRST","WARN","ALRT"};
 void show_display()
 {
   char s[20];
@@ -252,7 +242,7 @@ void show_display()
     break;
   case LISTENING:
   case ACTIVE:
-  
+
     if (alertaircraft.category==alertaircraft_t::NONE)
     {
       sprintf(s,"F%02d %03d %03dk",(int)(myaircraft.position.z/100),(int)(gps.course()/100),(int)gps.f_speed_kmph());
@@ -272,7 +262,8 @@ void show_display()
         c='^';
       else 
       {
-        c='-';adiff=-adiff;
+        c='-';
+        adiff=-adiff;
       }
       adiff*=100;
       sprintf(s,"%4s %c%03d ",DISP[alertaircraft.category],c,adiff);
@@ -282,7 +273,7 @@ void show_display()
       memcpy(s,alertaircraft.type,4);
       int bid=alertaircraft.bearingindegrees/30;
       if (bid<=0) bid+=12;
-      sprintf(s+4,"%2d.%1dkp%02dt%02d",alertaircraft.distanceinmetres/1000,alertaircraft.distanceinmetres%1000,bid,alertaircraft.remtime);
+      sprintf(s+4,"%2d.%02dkP%02dt%02d",alertaircraft.distanceinmetres/1000,(alertaircraft.distanceinmetres%1000)/10,bid,alertaircraft.remtime);
       lcd.setCursor(2,1);
       lcd.print(s);    
     }
@@ -348,6 +339,7 @@ void show_state()
     break;
   }
 }
+
 
 
 
