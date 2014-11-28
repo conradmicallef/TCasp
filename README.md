@@ -10,7 +10,7 @@ COPYRIGHT - Code is plublished under GNU license - you're free to copy and use p
 
 Arduino - reference TCAS implementation
 
-This implementation is a reference implementation of TCAS.
+This implementation is an adaptation of TCAS for microlight use.
 
 Project requres the use of a Moteino, serial display and GPS
 
