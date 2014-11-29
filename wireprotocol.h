@@ -8,11 +8,11 @@ struct wireprotocol_t
   char type[4];
   short int longitude;//fractional part ddmmss
   short int latitude;//fractional part ddmmss (only +=0.5 - using modular math)
-  byte height;//hundreds of feed
-  char speedns;//m/s
-  char speedwe;//m/s
-  char speedz;//m/s * 10
-  char arate;//rotation degrees/sec * 10
+  byte height;//hundreds of feed (0-25500 feet)
+  char speedns;//m/s -457 km/hr to 457 km/hour
+  char speedwe;//m/s -457 km/hr to 457 km/hour
+  char speedz;//feet/sec (-128-127 feet/sec ie-7680 to 7620 feet per min) 
+  char arate;//rotation radians/sec * 500 -14 degrees per second to 14 degrees per second - 360 turn in about 30 seconds
 };
 #define wp_size sizeof(wireprotocol_t)
 #define V1 49
